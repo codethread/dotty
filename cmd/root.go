@@ -7,8 +7,11 @@ package cmd
 import (
 	"os"
 
+	"github.com/codethread/dotty/lib"
 	"github.com/spf13/cobra"
 )
+
+// Flags
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -36,6 +39,7 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.dotty.yaml)")
+	rootCmd.PersistentFlags().BoolVarP(&lib.DryRun, "dry-run", "d", false, "show the files that would be affected, without running actually changing anything")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
