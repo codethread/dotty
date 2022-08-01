@@ -1,55 +1,35 @@
 package setup
 
 import (
-	"os"
-	"path"
-	"regexp"
 	"testing"
 
-	"github.com/codethread/dotty/lib/fp"
-	"github.com/codethread/dotty/lib/git"
-	"github.com/stretchr/testify/assert"
+	"github.com/codethread/dotty/test"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var fixtures = map[string]string{
-	".gitignore": `.private
-.config/exercism`,
-	".gitignore_global": `DS_Store`,
+	".gitignore":        ".private\n.config/exercism",
+	".gitignore_global": "bar",
 }
 
-func TestParseGitIgnores(t *testing.T) {
-	testDir := createTestFixtures(t, fixtures)
+func TestGetIgnoredPatterns(t *testing.T) {
+	Convey("GetIgnoredPatterns", t, func() {
+		testDir := test.CreateTestFixtures(t, fixtures)
 
-	ignores := ParseGitIgnores(testDir)
+		Convey("When no ignore paths are passed", func() {
+			patterns := GetIgnoredPatterns(testDir, []string{})
+			So(patterns.Patterns, ShouldBeEmpty)
+		})
 
-	matches := fp.Filter(
-		func(patterns git.Pattern) bool {
-			println("I WAS URUOIJ")
-			return patterns.Matches(".private")
-		}, ignores)
+		Convey("When some ignore paths are passed", func() {
+			patterns := GetIgnoredPatterns(testDir, []string{".gitignore", ".gitignore_global"})
+			So(len(patterns.Patterns), ShouldEqual, 3)
+		})
 
-	print("ahhh")
-	assert.Len(t, matches, 1)
-	// assert.Equal(ignores, })
-}
+		Convey("When some ignore paths are passed and don't exist", func() {
+			patterns := GetIgnoredPatterns(testDir, []string{".gitignore", ".gitignore_global", "missing_file"})
+			So(len(patterns.Patterns), ShouldEqual, 3)
+		})
+	})
 
-func TestGetAllLinkableFiles(t *testing.T) {
-	t.Skip()
-	assert.NotPanics(t,
-		func() {
-			var r []regexp.Regexp
-
-			GetAllLinkableFiles("", &r)
-		},
-	)
-}
-
-func createTestFixtures(t *testing.T, data map[string]string) string {
-	dir := t.TempDir()
-
-	for file, data := range data {
-		os.WriteFile(path.Join(dir, file), []byte(data), 0777)
-	}
-
-	return dir
 }

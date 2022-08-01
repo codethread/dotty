@@ -39,6 +39,16 @@ func FilterMap[T any, Y any](f func(T) (Y, bool), ls []T) []Y {
 	return newLs
 }
 
+func Reduce[T any, Y any](init Y, ls []T, reducer func(Y, T) Y) Y {
+	final := init
+
+	for _, v := range ls {
+		final = reducer(final, v)
+	}
+
+	return final
+}
+
 func Pipe[A any, B any, F1 func(A) B](f F1) F1 {
 	return func(arg A) B {
 		return f(arg)

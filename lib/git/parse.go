@@ -7,6 +7,19 @@ import (
 	"strings"
 )
 
+func ToPatterns(rs []*regexp.Regexp) Patterns {
+	return Patterns{
+		Patterns: fp.Mapp(func(r *regexp.Regexp) Pattern {
+			return Pattern{
+				Regexp:  r,
+				Negated: false,
+			}
+		}, rs),
+	}
+
+}
+
+// Patterns is a collection of Regexp `Pattern` which supports negation
 type Patterns struct {
 	Patterns []Pattern
 }

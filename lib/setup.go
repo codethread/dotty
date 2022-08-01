@@ -2,14 +2,14 @@ package lib
 
 import (
 	"fmt"
-	"github.com/codethread/dotty/lib/setup"
+	. "github.com/codethread/dotty/lib/setup"
 	"regexp"
 )
 
 func Setup(config SetupConfig) {
 	// teardown
-	// get ignored patterns
-	setup.GetAllLinkableFiles(config.From, &config.Ignored)
+	ignored := GetIgnoredPatterns(config.From, config.IgnoreFiles)
+	files := GetAllLinkableFiles(config.From, ignored)
 	// sort by length to keep directories at the end for cleanup
 	// for each file, link it into home
 	// for all success, add them to a teardown file
@@ -24,6 +24,7 @@ type SetupConfig struct {
 	From        string
 	To          string
 	Ignored     []regexp.Regexp
+	IgnoreFiles []string
 	HistoryFile string
 }
 
