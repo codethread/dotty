@@ -1,36 +1,35 @@
 package git
 
 import (
-	"github.com/codethread/dotty/lib/fp"
 	"io/ioutil"
 	"regexp"
 	"strings"
 )
 
-func ToPatterns(rs []*regexp.Regexp) Patterns {
-	return Patterns{
-		Patterns: fp.Mapp(func(r *regexp.Regexp) Pattern {
-			return Pattern{
-				Regexp:  r,
-				Negated: false,
-			}
-		}, rs),
-	}
-
-}
-
 // Patterns is a collection of Regexp `Pattern` which supports negation
 type Patterns struct {
-	Patterns []Pattern
+	Patterns []pattern
+}
+
+func New(rs []*regexp.Regexp) Patterns {
+	var patterns []pattern
+	for i, rs := range rs {
+		patterns[i] = pattern{regexp: rs, negated: false}
+	}
+	return Patterns{Patterns: patterns}
+}
+
+func Empty() Patterns {
+	return New([]*regexp.Regexp{})
 }
 
 func (pats Patterns) Matches(f string) bool {
-	_, notFound := fp.Find(func(pat Pattern) bool {
-		return pat.Matches(f)
-
-	}, pats.Patterns)
-
-	return notFound == nil
+	for _, p := range pats.Patterns {
+		if p.Matches(f) {
+			return true
+		}
+	}
+	return false
 }
 
 func (self Patterns) Concat(pat Patterns) Patterns {
@@ -38,44 +37,42 @@ func (self Patterns) Concat(pat Patterns) Patterns {
 	return self
 }
 
-type Pattern struct {
-	Regexp  *regexp.Regexp
-	Negated bool
+type pattern struct {
+	regexp  *regexp.Regexp
+	negated bool
 }
 
-func (pat Pattern) Matches(f string) bool {
+func (pat pattern) Matches(f string) bool {
 	// TODO: handle negated patterns
-	return pat.Regexp.MatchString(f)
+	return pat.regexp.MatchString(f)
 }
 
-// ParseGitIgnoreFile uses an ignore file as the input, parses the lines out of
+// ParseFile uses an ignore file as the input, parses the lines out of
 // the file and converts them to a list of Regexp
-//
-// Function stolen and edited from [ignore.go](https://github.com/sabhiram/go-gitignore/blob/master/ignore.go)
-func ParseGitIgnoreFile(fpath string) (Patterns, error) {
+func ParseFile(fpath string) (Patterns, error) {
 	bs, err := ioutil.ReadFile(fpath)
 
 	if err != nil {
 		return Patterns{}, err
 	}
 
-	s := strings.Split(string(bs), "\n")
+	var pats []pattern
 
-	r := fp.FilterMap(func(l string) (Pattern, bool) {
+	for _, l := range strings.Split(string(bs), "\n") {
 		rg, negated := getPatternFromLine(l)
 
-		if rg == nil {
-			return Pattern{}, false
+		if rg != nil {
+			pats = append(pats, pattern{regexp: rg, negated: negated})
 		}
+	}
 
-		return Pattern{Regexp: rg, Negated: negated}, true
-	}, s)
-
-	return Patterns{Patterns: r}, nil
+	return Patterns{Patterns: pats}, nil
 }
 
 // This function pretty much attempts to mimic the parsing rules
 // listed above at the start of this file
+//
+// Function stolen and edited from [ignore.go](https://github.com/sabhiram/go-gitignore/blob/master/ignore.go)
 func getPatternFromLine(line string) (*regexp.Regexp, bool) {
 	// Trim OS-specific carriage returns.
 	line = strings.TrimRight(line, "\r")

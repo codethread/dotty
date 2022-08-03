@@ -19,7 +19,7 @@ func GetFixtureBase() string {
 	return filepath.Join(exPath, "fixtures")
 }
 
-func CreateTestFixtures(t *testing.T, data map[string]string) string {
+func CreateFixtures(t *testing.T, data map[string]string) string {
 	dir := t.TempDir()
 
 	for file, data := range data {

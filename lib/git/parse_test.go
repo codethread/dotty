@@ -39,47 +39,54 @@ flycheck_*.el
 
 func TestParseGitIgnoreFile(t *testing.T) {
 	Convey("TestParseGitIgnoreFile converts a gitignore file to a valid Patterns struct", t, func() {
+		Convey("converts valid gitignore files to Patterns struct", func() {
+			testDir := test.CreateFixtures(t, fixtures)
 
-		testDir := test.CreateTestFixtures(t, fixtures)
+			patterns, err := ParseFile(path.Join(testDir, ".gitignore"))
 
-		patterns, _ := ParseGitIgnoreFile(path.Join(testDir, ".gitignore"))
-
-		shouldMatch := []string{
-			".private",
-			".config/exercism",
-			".idea/nested",
-			".idea/deep/nested",
-			"some/nested/Session.vim",
-			"filetype.rel",
-			"nested/filetype.rel",
-			"flycheck_something.el",
-			"#any#",
-			".#any",
-			".foo.swp",
-		}
-
-		shouldNotMatch := []string{
-			"#any",
-			"any#",
-			"flychecksomething.el",
-			".ideanested",
-			".config/bar",
-			".config/execism",
-			"private",
-			"cheese",
-		}
-
-		for _, tc := range shouldMatch {
-			Convey(fmt.Sprintf("Pattern %v should be matched", tc), func() {
-				So(patterns.Matches(tc), ShouldBeTrue)
+			Convey("it does not return an error", func() {
+				So(err, ShouldEqual, nil)
 			})
-		}
 
-		for _, tc := range shouldNotMatch {
-			Convey(fmt.Sprintf("Pattern %v should NOT be matched", tc), func() {
-				So(patterns.Matches(tc), ShouldBeFalse)
-			})
-		}
+			for _, tc := range []string{
+				".private",
+				".config/exercism",
+				".idea/nested",
+				".idea/deep/nested",
+				"some/nested/Session.vim",
+				"filetype.rel",
+				"nested/filetype.rel",
+				"flycheck_something.el",
+				"#any#",
+				".#any",
+				".foo.swp",
+			} {
+				Convey(fmt.Sprintf("Pattern %v should be matched", tc), func() {
+					So(patterns.Matches(tc), ShouldBeTrue)
+				})
+			}
+
+			for _, tc := range []string{
+				"#any",
+				"any#",
+				"flychecksomething.el",
+				".ideanested",
+				".config/bar",
+				".config/execism",
+				"private",
+				"cheese",
+			} {
+				Convey(fmt.Sprintf("Pattern %v should NOT be matched", tc), func() {
+					So(patterns.Matches(tc), ShouldBeFalse)
+				})
+			}
+
+		})
+
+		Convey("ParseFile returns an error when the file is not valid", func() {
+			_, err := ParseFile(path.Join("~", "nope"))
+			So(err, ShouldNotEqual, nil)
+		})
 	})
 
 }

@@ -14,7 +14,7 @@ var fixtures = map[string]string{
 
 func TestGetIgnoredPatterns(t *testing.T) {
 	Convey("GetIgnoredPatterns", t, func() {
-		testDir := test.CreateTestFixtures(t, fixtures)
+		testDir := test.CreateFixtures(t, fixtures)
 
 		Convey("When no ignore paths are passed", func() {
 			patterns := GetIgnoredPatterns(testDir, []string{})
