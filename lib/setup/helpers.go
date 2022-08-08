@@ -3,8 +3,12 @@ package setup
 import (
 	"path"
 
-	"github.com/codethread/dotty/lib/git"
+	"github.com/sabhiram/go-gitignore"
 )
+
+type Matcher interface {
+	MatchesPath(f string) bool
+}
 
 type FileTree struct {
 	Dir   string
@@ -13,27 +17,17 @@ type FileTree struct {
 }
 
 // getAllLinkableFiles finds all files at DIR, ignoring IGNORED
-func GetAllLinkableFiles(dir string, ignored git.Patterns) FileTree {
+func GetAllLinkableFiles(dir string, ignores []Matcher) FileTree {
+
 	panic("not implemented")
 }
 
-// func GetIgnoredPatterns(dir string, ignoreFiles []string) git.Patterns {
-// 	return fp.Pipe2(
-// 		fp.MapFilterErr(func(f string) (git.Patterns, error) {
-// 			return git.ParseFile(path.Join(dir, f))
-// 		}),
-
-// 		fp.Reduce(git.Patterns{}, git.Patterns.Concat),
-// 	)(ignoreFiles)
-// }
-
-func GetIgnoredPatterns(dir string, ignoreFiles []string) (p git.Patterns) {
+func GetIgnoredPatterns(dir string, ignoreFiles []string) (ignores []Matcher) {
 	for _, f := range ignoreFiles {
-		ignore, err := git.ParseFile(path.Join(dir, f))
-		if err == nil {
-			p = p.Concat(ignore)
+		ignore, err := ignore.CompileIgnoreFile(path.Join(dir, f))
+		if err != nil {
+			ignores = append(ignores, ignore)
 		}
 	}
-
 	return
 }
