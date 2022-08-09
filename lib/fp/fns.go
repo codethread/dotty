@@ -2,24 +2,24 @@ package fp
 
 import "errors"
 
-func goFn[A any, B any](datum A, fn func(A) B, c chan B) {
-	res := fn(datum)
-
-	c <- res
-}
-
 func PromiseAll[A any, B any](data []A, fn func(A) B) (result []B) {
 	c := make(chan B)
 
-	for _, d := range data {
-		go goFn(d, fn, c)
+	for _, datum := range data {
+		go func(d A) { c <- fn(d) }(datum)
 	}
 
-	for i := 0; i < len(data); i++ {
+	DoTimes(len(data), func() {
 		result = append(result, <-c)
-	}
+	})
 
 	return
+}
+
+func DoTimes(count int, fn func()) {
+	for i := 0; i < count; i++ {
+		fn()
+	}
 }
 
 // Map applies function `f` over a list of `ls`, returning a new array.
