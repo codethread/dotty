@@ -2,8 +2,28 @@ package fp
 
 import "errors"
 
+func goFn[A any, B any](datum A, fn func(A) B, c chan B) {
+	res := fn(datum)
+
+	c <- res
+}
+
+func PromiseAll[A any, B any](data []A, fn func(A) B) (result []B) {
+	c := make(chan B)
+
+	for _, d := range data {
+		go goFn(d, fn, c)
+	}
+
+	for i := 0; i < len(data); i++ {
+		result = append(result, <-c)
+	}
+
+	return
+}
+
 // Map applies function `f` over a list of `ls`, returning a new array.
-func Mapp[T any, Y any](f func(T) Y) func(ls []T) []Y {
+func Map[T any, Y any](f func(T) Y) func(ls []T) []Y {
 	return func(ls []T) []Y {
 		newLs := make([]Y, len(ls))
 

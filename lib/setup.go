@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/codethread/dotty/lib/fp"
 	ignore "github.com/sabhiram/go-gitignore"
 )
 
@@ -18,7 +19,6 @@ func Setup(config SetupConfig) {
 	ignored := getIgnoredPatterns(config.gitignores)
 	allIgnored := append(ignored, config.ignored...)
 	files := getAllLinkableFiles(config.from, allIgnored)
-	// sort by length to keep directories at the end for cleanup
 	// for each file, link it into home
 	// for all success, add them to a teardown file
 	// for all failures, present a warning in the console
@@ -53,8 +53,8 @@ func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 	e := expand(implicitConfig.Home)
 	var matcher []Matcher
 
-	ignore, err := regexp.Compile("^foo_.*")
-	ignore2, err := regexp.Compile("^.git")
+	ignore, err := regexp.Compile("^_.*")
+	ignore2, err := regexp.Compile("^.git$")
 	if err != nil {
 		panic(err)
 	}
@@ -104,26 +104,26 @@ func getAllLinkableFiles(dir string, ignores Matchers) (ft FileTree) {
 	}
 
 	return
+
 }
 
-func getIgnoredPatterns(ignoreFiles []string) (ignores []Matcher) {
-	for _, f := range ignoreFiles {
+func getIgnoredPatterns(ignoreFiles []string) []Matcher {
+	return fp.PromiseAll(ignoreFiles, func(f string) Matcher {
 		ignore, err := ignore.CompileIgnoreFile(f)
+
 		if err != nil {
 			panic(err)
 		}
-		w := wrapper{ignore: ignore}
-		ignores = append(ignores, w)
-	}
-	return
+
+		return wrapper(*ignore)
+	})
 }
 
-type wrapper struct {
-	ignore *ignore.GitIgnore
-}
+type wrapper ignore.GitIgnore
 
 func (w wrapper) MatchString(f string) bool {
-	return w.ignore.MatchesPath(f)
+	var i ignore.GitIgnore = ignore.GitIgnore(w)
+	return i.MatchesPath(f)
 }
 
 type Matcher interface {
