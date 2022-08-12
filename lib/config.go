@@ -4,7 +4,9 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 type ImplicitConfig struct {
@@ -28,6 +30,15 @@ func GetImplicitConfig() ImplicitConfig {
 	}
 }
 
+type SetupConfig struct {
+	DryRun      bool
+	From        string
+	To          string
+	ignored     []Matcher
+	gitignores  []string
+	HistoryFile string
+}
+
 func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 	e := expand(implicitConfig.Home)
 	var matcher []Matcher
@@ -44,18 +55,22 @@ func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 	return SetupConfig{
 		DryRun:      true,
 		From:        e("~/PersonalConfigs"),
-		To:          e("~/test"),
+		To:          e("~"),
 		gitignores:  []string{e("~/PersonalConfigs/.gitignore_global"), e("~/PersonalConfigs/.gitignore")},
 		ignored:     matcher,
 		HistoryFile: e("~/.dotty"),
 	}
 }
 
-type SetupConfig struct {
-	DryRun      bool
-	From        string
-	To          string
-	ignored     []Matcher
-	gitignores  []string
-	HistoryFile string
+func expand(home string) func(string) string {
+	return func(path string) string {
+		if path == "~" {
+			return home
+		} else if strings.HasPrefix(path, "~/") {
+			return filepath.Join(home, path[2:])
+		} else {
+
+			return path
+		}
+	}
 }

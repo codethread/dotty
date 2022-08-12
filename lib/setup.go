@@ -5,7 +5,6 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -18,7 +17,7 @@ var naps int
 func Setup(config SetupConfig) {
 	fmt.Print("\n\n\n\n")
 	start := time.Now()
-	// teardown
+	// TODO: teardown
 	ignored := getIgnoredPatterns(config.gitignores)
 	allIgnored := append(ignored, config.ignored...)
 	fmt.Println("start")
@@ -27,44 +26,24 @@ func Setup(config SetupConfig) {
 	go getAllLinkableFiles(config.From, allIgnored, c)
 	files := <-c
 
-	asStr := ToGOB64(files)
-	os.WriteFile(config.HistoryFile, []byte(asStr), 0644)
+	files = files.Filter(func(dir string, file string) bool {
+		target := strings.Replace(dir, config.From, config.To, 1)
+		return !fileAlreadyExists(path.Join(target, file))
+	})
+
+	StringifyToFile(files, config.HistoryFile)
+
+	// for each file, link it into home
 	// files.Walk(Visitor{
 	// 	file: func(dir string, file string) { fmt.Println("->", dir, file) },
 	// 	dir:  func(dir string) { fmt.Println("dd", dir) },
 	// })
 
-	// for each file, link it into home
 	// for all success, add them to a teardown file
 	// for all failures, present a warning in the console
 
-	// fmt.Println(files)
 	fmt.Println("duration", time.Since(start).Milliseconds())
 
-}
-
-func expand(home string) func(string) string {
-	return func(path string) string {
-		if path == "~" {
-			return home
-		} else if strings.HasPrefix(path, "~/") {
-			return filepath.Join(home, path[2:])
-		} else {
-
-			return path
-		}
-	}
-}
-
-type Matchers []Matcher
-
-func (ignores Matchers) Matches(path string) bool {
-	for _, ignore := range ignores {
-		if ignore.MatchString(path) {
-			return true
-		}
-	}
-	return false
 }
 
 func getAllLinkableFiles(dir string, ignores Matchers, c chan FileTree) {
@@ -105,6 +84,21 @@ func getAllLinkableFiles(dir string, ignores Matchers, c chan FileTree) {
 	c <- ft
 }
 
+type Matcher interface {
+	MatchString(f string) bool
+}
+
+type Matchers []Matcher
+
+func (ignores Matchers) Matches(path string) bool {
+	for _, ignore := range ignores {
+		if ignore.MatchString(path) {
+			return true
+		}
+	}
+	return false
+}
+
 func getIgnoredPatterns(ignoreFiles []string) []Matcher {
 	return fp.PromiseAll(ignoreFiles, func(f string) Matcher {
 		ignore, err := ignore.CompileIgnoreFile(f)
@@ -124,48 +118,20 @@ func (w wrapper) MatchString(f string) bool {
 	return i.MatchesPath(f)
 }
 
-type Matcher interface {
-	MatchString(f string) bool
-}
+func fileAlreadyExists(file string) bool {
+	fi, err := os.Lstat(file)
 
-type FileTree struct {
-	Dir   string
-	Files []string
-	Dirs  []FileTree
-}
-
-func (ft FileTree) Debug() string {
-	return p(ft, 0, 2)
-}
-
-type Visitor struct {
-	File func(dir string, file string)
-	Dir  func(string)
-}
-
-func (ft FileTree) Walk(vistor Visitor) {
-	vistor.Dir(ft.Dir)
-
-	for _, f := range ft.Files {
-		vistor.File(ft.Dir, f)
+	// no file
+	if err != nil {
+		return false
 	}
 
-	for _, fts := range ft.Dirs {
-		fts.Walk(vistor)
-	}
-}
-
-func p(ft FileTree, indent int, indentation int) string {
-	i := strings.Repeat(" ", indent*indentation)
-
-	out := fmt.Sprintf("\n%s%s/", i, path.Base(ft.Dir))
-
-	for _, f := range ft.Files {
-		out = fmt.Sprintf("%s\n%s%s", out, i, f)
+	if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
+		// symlink
+		return false
 	}
 
-	for _, f := range ft.Dirs {
-		out = fmt.Sprintf("%s%s", out, p(f, indent+1, indentation))
-	}
-	return out
+	fmt.Println("file", file, "already exists, you'll need to remove it manually")
+	// file exists
+	return true
 }
