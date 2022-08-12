@@ -1,15 +1,11 @@
 package lib
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/gob"
 	"fmt"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -28,11 +24,11 @@ func Setup(config SetupConfig) {
 	fmt.Println("start")
 
 	c := make(chan FileTree)
-	go getAllLinkableFiles(config.from, allIgnored, c)
+	go getAllLinkableFiles(config.From, allIgnored, c)
 	files := <-c
 
 	asStr := ToGOB64(files)
-	os.WriteFile(config.historyFile, []byte(asStr), 0644)
+	os.WriteFile(config.HistoryFile, []byte(asStr), 0644)
 	// files.Walk(Visitor{
 	// 	file: func(dir string, file string) { fmt.Println("->", dir, file) },
 	// 	dir:  func(dir string) { fmt.Println("dd", dir) },
@@ -47,43 +43,6 @@ func Setup(config SetupConfig) {
 
 }
 
-// go binary encoder
-func ToGOB64(m FileTree) string {
-	b := bytes.Buffer{}
-	e := gob.NewEncoder(&b)
-	err := e.Encode(m)
-	if err != nil {
-		fmt.Println(`failed gob Encode`, err)
-	}
-	return base64.StdEncoding.EncodeToString(b.Bytes())
-}
-
-// go binary decoder
-func FromGOB64(str string) FileTree {
-	m := FileTree{}
-	by, err := base64.StdEncoding.DecodeString(str)
-	if err != nil {
-		fmt.Println(`failed base64 Decode`, err)
-	}
-	b := bytes.Buffer{}
-	b.Write(by)
-	d := gob.NewDecoder(&b)
-	err = d.Decode(&m)
-	if err != nil {
-		fmt.Println(`failed gob Decode`, err)
-	}
-	return m
-}
-
-type SetupConfig struct {
-	dryRun      bool
-	from        string
-	to          string
-	ignored     []Matcher
-	gitignores  []string
-	historyFile string
-}
-
 func expand(home string) func(string) string {
 	return func(path string) string {
 		if path == "~" {
@@ -94,29 +53,6 @@ func expand(home string) func(string) string {
 
 			return path
 		}
-	}
-}
-
-func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
-	e := expand(implicitConfig.Home)
-	var matcher []Matcher
-
-	ignore, err := regexp.Compile("^_.*")
-	ignore2, err := regexp.Compile("^.git$")
-	ignore3, err := regexp.Compile("^node_modules$")
-	if err != nil {
-		panic(err)
-	}
-
-	matcher = append(matcher, ignore, ignore2, ignore3)
-
-	return SetupConfig{
-		dryRun:      true,
-		from:        e("~/PersonalConfigs"),
-		to:          e("~/test"),
-		gitignores:  []string{e("~/PersonalConfigs/.gitignore_global"), e("~/PersonalConfigs/.gitignore")},
-		ignored:     matcher,
-		historyFile: e("~/.dotty"),
 	}
 }
 

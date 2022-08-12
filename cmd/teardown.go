@@ -6,7 +6,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 
 	"github.com/codethread/dotty/lib"
@@ -26,13 +25,14 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("teardown called")
 
-		HOME, err := os.UserHomeDir()
-		if err != nil {
-			panic(err)
-		}
+		config := lib.BuildSetupConfig(
+			lib.Flags{
+				DryRun: lib.DryRun,
+			},
+			lib.GetImplicitConfig(),
+		)
 
-		fS := os.DirFS(HOME)
-		f, err := fs.ReadFile(fS, ".dotty")
+		f, err := os.ReadFile(config.HistoryFile)
 
 		if err != nil {
 			panic(err)
