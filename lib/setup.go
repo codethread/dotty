@@ -28,7 +28,12 @@ func Setup(config SetupConfig) {
 
 	files = files.Filter(func(dir string, file string) bool {
 		target := strings.Replace(dir, config.From, config.To, 1)
-		return !fileAlreadyExists(path.Join(target, file))
+		targetFile := path.Join(target, file)
+		fileExists := fileAlreadyExists(targetFile)
+		if fileExists {
+			fmt.Println("file", targetFile, "already exists, you'll need to remove it manually")
+		}
+		return !fileExists
 	})
 
 	StringifyToFile(files, config.HistoryFile)
@@ -131,7 +136,6 @@ func fileAlreadyExists(file string) bool {
 		return false
 	}
 
-	fmt.Println("file", file, "already exists, you'll need to remove it manually")
 	// file exists
 	return true
 }
