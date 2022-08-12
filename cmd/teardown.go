@@ -6,7 +6,10 @@ package cmd
 
 import (
 	"fmt"
+	"io/fs"
+	"os"
 
+	"github.com/codethread/dotty/lib"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +25,24 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("teardown called")
+
+		HOME, err := os.UserHomeDir()
+		if err != nil {
+			panic(err)
+		}
+
+		fS := os.DirFS(HOME)
+		f, err := fs.ReadFile(fS, ".dotty")
+
+		if err != nil {
+			panic(err)
+		}
+
+		files := lib.FromGOB64(string(f))
+		files.Walk(lib.Visitor{
+			File: func(dir string, file string) { fmt.Println("->", dir, file) },
+			Dir:  func(dir string) { fmt.Println("dd", dir) },
+		})
 	},
 }
 

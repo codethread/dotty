@@ -1,6 +1,9 @@
 package lib
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/gob"
 	"fmt"
 	"io/fs"
 	"os"
@@ -14,6 +17,8 @@ import (
 	ignore "github.com/sabhiram/go-gitignore"
 )
 
+var naps int
+
 func Setup(config SetupConfig) {
 	fmt.Print("\n\n\n\n")
 	start := time.Now()
@@ -24,19 +29,50 @@ func Setup(config SetupConfig) {
 
 	c := make(chan FileTree)
 	go getAllLinkableFiles(config.from, allIgnored, c)
-	fmt.Println("waiting")
 	files := <-c
-	fmt.Println("end")
 
-	// getAllLinkableFilesSync(config.from, allIgnored)
+	asStr := ToGOB64(files)
+	os.WriteFile(config.historyFile, []byte(asStr), 0644)
+	// files.Walk(Visitor{
+	// 	file: func(dir string, file string) { fmt.Println("->", dir, file) },
+	// 	dir:  func(dir string) { fmt.Println("dd", dir) },
+	// })
 
 	// for each file, link it into home
 	// for all success, add them to a teardown file
 	// for all failures, present a warning in the console
 
-	fmt.Println(files)
+	// fmt.Println(files)
 	fmt.Println("duration", time.Since(start).Milliseconds())
 
+}
+
+// go binary encoder
+func ToGOB64(m FileTree) string {
+	b := bytes.Buffer{}
+	e := gob.NewEncoder(&b)
+	err := e.Encode(m)
+	if err != nil {
+		fmt.Println(`failed gob Encode`, err)
+	}
+	return base64.StdEncoding.EncodeToString(b.Bytes())
+}
+
+// go binary decoder
+func FromGOB64(str string) FileTree {
+	m := FileTree{}
+	by, err := base64.StdEncoding.DecodeString(str)
+	if err != nil {
+		fmt.Println(`failed base64 Decode`, err)
+	}
+	b := bytes.Buffer{}
+	b.Write(by)
+	d := gob.NewDecoder(&b)
+	err = d.Decode(&m)
+	if err != nil {
+		fmt.Println(`failed gob Decode`, err)
+	}
+	return m
 }
 
 type SetupConfig struct {
@@ -75,10 +111,8 @@ func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 	matcher = append(matcher, ignore, ignore2, ignore3)
 
 	return SetupConfig{
-		dryRun: true,
-		from:   e("~/PersonalConfigs"),
-		// from: e("~/dev"),
-		// from:        e("~/dev/hawk"),
+		dryRun:      true,
+		from:        e("~/PersonalConfigs"),
 		to:          e("~/test"),
 		gitignores:  []string{e("~/PersonalConfigs/.gitignore_global"), e("~/PersonalConfigs/.gitignore")},
 		ignored:     matcher,
@@ -97,59 +131,40 @@ func (ignores Matchers) Matches(path string) bool {
 	return false
 }
 
-func getAllLinkableFilesSync(dir string, ignores Matchers) (ft FileTree) {
-	fS := os.DirFS(dir)
-	dirE, err := fs.ReadDir(fS, ".")
-
-	if err != nil {
-		panic(err)
-	}
-
-	ft.Dir = dir
-
-	for _, f := range dirE {
-		n := f.Name()
-		if ignores.Matches(n) {
-			continue
-		} else if f.IsDir() {
-			ft.Dirs = append(ft.Dirs, getAllLinkableFilesSync(path.Join(dir, n), ignores))
-		} else {
-			ft.Files = append(ft.Files, n)
-		}
-	}
-
-	return
-}
-
 func getAllLinkableFiles(dir string, ignores Matchers, c chan FileTree) {
-	c2 := make(chan FileTree)
-	var ft FileTree
+	ft := FileTree{
+		Dir: dir,
+	}
 	fS := os.DirFS(dir)
+
 	dirE, err := fs.ReadDir(fS, ".")
 
 	if err != nil {
 		panic(err)
 	}
 
-	ft.Dir = dir
-
-	openChannels := 0
+	var dirs []string
 
 	for _, f := range dirE {
-		n := f.Name()
-		if ignores.Matches(n) {
+		name := f.Name()
+		if ignores.Matches(name) {
 			continue
 		} else if f.IsDir() {
-			go getAllLinkableFiles(path.Join(dir, n), ignores, c2)
-			openChannels++
+			dirs = append(dirs, name)
 		} else {
-			ft.Files = append(ft.Files, n)
+			ft.Files = append(ft.Files, name)
 		}
 	}
 
-	fp.DoTimes(openChannels, func() {
+	c2 := make(chan FileTree, len(dirs))
+
+	for _, name := range dirs {
+		go getAllLinkableFiles(path.Join(dir, name), ignores, c2)
+	}
+
+	for range dirs {
 		ft.Dirs = append(ft.Dirs, <-c2)
-	})
+	}
 
 	c <- ft
 }
@@ -185,6 +200,23 @@ type FileTree struct {
 
 func (ft FileTree) Debug() string {
 	return p(ft, 0, 2)
+}
+
+type Visitor struct {
+	File func(dir string, file string)
+	Dir  func(string)
+}
+
+func (ft FileTree) Walk(vistor Visitor) {
+	vistor.Dir(ft.Dir)
+
+	for _, f := range ft.Files {
+		vistor.File(ft.Dir, f)
+	}
+
+	for _, fts := range ft.Dirs {
+		fts.Walk(vistor)
+	}
 }
 
 func p(ft FileTree, indent int, indentation int) string {
