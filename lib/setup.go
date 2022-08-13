@@ -6,49 +6,64 @@ import (
 	"os"
 	"path"
 	"strings"
-	"time"
-
-	"github.com/codethread/dotty/lib/fp"
-	ignore "github.com/sabhiram/go-gitignore"
 )
 
 var naps int
 
 func Setup(config SetupConfig) {
 	fmt.Print("\n\n\n\n")
-	start := time.Now()
-	// TODO: teardown
-	ignored := getIgnoredPatterns(config.gitignores)
+
+	dryRun := config.DryRun
+	if dryRun {
+		fmt.Println("dry run, no files will be changed...")
+	}
+
+	Teardown(config)
+
+	ignored := GetIgnoredPatterns(config.gitignores)
 	allIgnored := append(ignored, config.ignored...)
-	fmt.Println("start")
 
 	c := make(chan FileTree)
 	go getAllLinkableFiles(config.From, allIgnored, c)
 	files := <-c
 
 	files = files.Filter(func(dir string, file string) bool {
-		target := strings.Replace(dir, config.From, config.To, 1)
-		targetFile := path.Join(target, file)
-		fileExists := fileAlreadyExists(targetFile)
-		if fileExists {
-			fmt.Println("file", targetFile, "already exists, you'll need to remove it manually")
+		target := fromFromPathToTarget(&config, dir, file)
+
+		if fileAlreadyExists(target) {
+			fmt.Fprintf(os.Stderr, "file %s already exists, you'll need to remove it manually\n", target)
+			return false
 		}
-		return !fileExists
+		return true
 	})
 
-	StringifyToFile(files, config.HistoryFile)
+	if !dryRun {
+		StringifyToFile(files, config.HistoryFile)
+	}
 
 	// for each file, link it into home
-	// files.Walk(Visitor{
-	// 	file: func(dir string, file string) { fmt.Println("->", dir, file) },
-	// 	dir:  func(dir string) { fmt.Println("dd", dir) },
-	// })
-
-	// for all success, add them to a teardown file
-	// for all failures, present a warning in the console
-
-	fmt.Println("duration", time.Since(start).Milliseconds())
-
+	files.Walk(FileTreeVisitor{
+		File: func(dir string, file string) {
+			from := path.Join(dir, file)
+			target := fromFromPathToTarget(&config, dir, file)
+			if dryRun {
+				fmt.Println("symlink ->", target)
+			} else {
+				err := os.Symlink(from, target)
+				if err != nil {
+					fmt.Println("could not symlink", from, "=>", target)
+				}
+			}
+		},
+		Dir: func(dir string) {
+			target := fromFromPathToTarget(&config, dir)
+			if dryRun {
+				fmt.Println("create =>", target)
+			} else {
+				os.MkdirAll(target, os.ModePerm)
+			}
+		},
+	})
 }
 
 func getAllLinkableFiles(dir string, ignores Matchers, c chan FileTree) {
@@ -89,40 +104,6 @@ func getAllLinkableFiles(dir string, ignores Matchers, c chan FileTree) {
 	c <- ft
 }
 
-type Matcher interface {
-	MatchString(f string) bool
-}
-
-type Matchers []Matcher
-
-func (ignores Matchers) Matches(path string) bool {
-	for _, ignore := range ignores {
-		if ignore.MatchString(path) {
-			return true
-		}
-	}
-	return false
-}
-
-func getIgnoredPatterns(ignoreFiles []string) []Matcher {
-	return fp.PromiseAll(ignoreFiles, func(f string) Matcher {
-		ignore, err := ignore.CompileIgnoreFile(f)
-
-		if err != nil {
-			panic(err)
-		}
-
-		return wrapper(*ignore)
-	})
-}
-
-type wrapper ignore.GitIgnore
-
-func (w wrapper) MatchString(f string) bool {
-	var i ignore.GitIgnore = ignore.GitIgnore(w)
-	return i.MatchesPath(f)
-}
-
 func fileAlreadyExists(file string) bool {
 	fi, err := os.Lstat(file)
 
@@ -138,4 +119,9 @@ func fileAlreadyExists(file string) bool {
 
 	// file exists
 	return true
+}
+
+func fromFromPathToTarget(config *SetupConfig, paths ...string) string {
+	paths[0] = strings.Replace(paths[0], config.From, config.To, 1)
+	return path.Join(paths...)
 }

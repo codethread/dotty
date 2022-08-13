@@ -43,17 +43,25 @@ func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 	e := expand(implicitConfig.Home)
 	var matcher []Matcher
 
-	ignore, err := regexp.Compile("^_.*")
-	ignore2, err := regexp.Compile("^.git$")
-	ignore3, err := regexp.Compile("^node_modules$")
-	if err != nil {
-		panic(err)
+	ignores := []string{
+		"^_.*",
+		"^.git$",
+		"^node_modules$",
+		".gitignore",
+		"README",
 	}
 
-	matcher = append(matcher, ignore, ignore2, ignore3)
+	for _, re := range ignores {
+		ignore, err := regexp.Compile(re)
+		if err != nil {
+			panic(err)
+		}
+
+		matcher = append(matcher, ignore)
+	}
 
 	return SetupConfig{
-		DryRun:      true,
+		DryRun:      false,
 		From:        e("~/PersonalConfigs"),
 		To:          e("~"),
 		gitignores:  []string{e("~/PersonalConfigs/.gitignore_global"), e("~/PersonalConfigs/.gitignore")},
