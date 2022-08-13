@@ -10,7 +10,7 @@ on:
 jobs:
   release:
     name: release mac/amd64
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: wangyoucao577/go-release-action@v1.30
@@ -18,4 +18,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: darwin
           goarch: arm64
-          goversion: https://go.dev/dl/go1.18.5.darwin-arm64.tar.gz
+          goversion: https://go.dev/dl/go1.18.5.linux-arm64.tar.gz
