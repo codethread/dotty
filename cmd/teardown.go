@@ -31,11 +31,7 @@ to quickly create a Cobra application.`,
 			lib.GetImplicitConfig(),
 		)
 
-		files := lib.ParseFromFile[lib.FileTree](config.HistoryFile)
-		files.Walk(lib.FileTreeVisitor{
-			File: func(dir string, file string) { fmt.Println("->", dir, file) },
-			Dir:  func(dir string) { fmt.Println("dd", dir) },
-		})
+		lib.Teardown(config)
 	},
 }
 

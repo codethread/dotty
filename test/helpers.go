@@ -1,8 +1,8 @@
 package test
 
 import (
+	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 )
@@ -19,11 +19,15 @@ func GetFixtureBase() string {
 	return filepath.Join(exPath, "fixtures")
 }
 
-func CreateFixtures(t *testing.T, data map[string]string) string {
+func CreateFixtures(t *testing.T, fixtureList ...map[string]string) string {
 	dir := t.TempDir()
 
-	for file, data := range data {
-		os.WriteFile(path.Join(dir, file), []byte(data), 0777)
+	for _, fixtures := range fixtureList {
+		for file, contents := range fixtures {
+			path := filepath.Join(dir, file)
+			os.MkdirAll(filepath.Dir(path), fs.ModePerm)
+			os.WriteFile(path, []byte(contents), 0777)
+		}
 	}
 
 	return dir

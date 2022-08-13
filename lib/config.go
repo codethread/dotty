@@ -61,7 +61,7 @@ func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 	}
 
 	return SetupConfig{
-		DryRun:      false,
+		DryRun:      flags.DryRun,
 		From:        e("~/PersonalConfigs"),
 		To:          e("~"),
 		gitignores:  []string{e("~/PersonalConfigs/.gitignore_global"), e("~/PersonalConfigs/.gitignore")},

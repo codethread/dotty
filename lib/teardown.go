@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +11,11 @@ func Teardown(config SetupConfig) {
 	dryRun := config.DryRun
 	if dryRun {
 		fmt.Println("dry run, no files will be deleted...")
+	}
+
+	if _, err := os.Stat(config.HistoryFile); errors.Is(err, os.ErrNotExist) {
+		fmt.Println("no previous dotty data")
+		return
 	}
 
 	files := ParseFromFile[FileTree](config.HistoryFile)
@@ -42,6 +48,8 @@ func Teardown(config SetupConfig) {
 			}
 		},
 	})
+
+	deleteTarget(config.HistoryFile)
 }
 
 func deleteTarget(target string) {

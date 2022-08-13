@@ -11,9 +11,8 @@ import (
 var naps int
 
 func Setup(config SetupConfig) {
-	fmt.Print("\n\n\n\n")
-
 	dryRun := config.DryRun
+
 	if dryRun {
 		fmt.Println("dry run, no files will be changed...")
 	}
