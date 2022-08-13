@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -19,7 +18,8 @@ var setupCmd = &cobra.Command{
 
 		config := lib.BuildSetupConfig(
 			lib.Flags{
-				DryRun: lib.DryRun,
+				DryRun:  lib.DryRun,
+				Ignores: &lib.Ignores,
 			},
 			lib.GetImplicitConfig(),
 		)
@@ -30,4 +30,6 @@ var setupCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(setupCmd)
+	setupCmd.Flags().StringSliceVarP(&lib.Ignores, "ignore", "i", []string{}, "regex ignore patterns, e.g -i \"foo*\" -i \".*bar$\"")
+	setupCmd.Flags().BoolVarP(&lib.DryRun, "dry-run", "d", false, "show the files that would be affected, without running actually changing anything")
 }

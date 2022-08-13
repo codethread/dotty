@@ -3,10 +3,11 @@ package lib
 import (
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/codethread/dotty/lib/fp"
 )
 
 type ImplicitConfig struct {
@@ -22,7 +23,7 @@ func GetImplicitConfig() ImplicitConfig {
 		log.Fatal("Could not find a suitable HOME value")
 	}
 
-	ConfigLocation := path.Join(HOME, ".config", "dotty")
+	ConfigLocation := filepath.Join(HOME, "PersonalConfigs", ".dottyignore")
 
 	return ImplicitConfig{
 		Home:           HOME,
@@ -43,13 +44,8 @@ func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 	e := expand(implicitConfig.Home)
 	var matcher []Matcher
 
-	ignores := []string{
-		"^_.*",
-		"^.git$",
-		"^node_modules$",
-		".gitignore",
-		"README",
-	}
+	ignores := parseDottyIgnore(implicitConfig.ConfigLocation)
+	ignores = append(ignores, *flags.Ignores...)
 
 	for _, re := range ignores {
 		ignore, err := regexp.Compile(re)
@@ -68,6 +64,21 @@ func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 		ignored:     matcher,
 		HistoryFile: e("~/.dotty"),
 	}
+}
+
+func parseDottyIgnore(path string) (ignores []string) {
+	file, err := os.ReadFile(path)
+
+	if err != nil {
+		return
+	}
+
+	// TODO: should likely use some valiation here
+	lines := strings.Split(string(file), "\n")
+
+	return fp.Filter(lines, func(s string) bool {
+		return s != ""
+	})
 }
 
 func expand(home string) func(string) string {

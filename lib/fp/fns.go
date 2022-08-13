@@ -35,18 +35,16 @@ func Map[T any, Y any](f func(T) Y) func(ls []T) []Y {
 	}
 }
 
-func Filter[T any](f func(T) bool) func(ls []T) []T {
+func Filter[T any](ls []T, f func(T) bool) []T {
 	var newLs []T
 
-	return func(ls []T) []T {
-		for _, v := range ls {
-			if f(v) {
-				newLs = append(newLs, v)
-			}
+	for _, v := range ls {
+		if f(v) {
+			newLs = append(newLs, v)
 		}
-
-		return newLs
 	}
+
+	return newLs
 }
 
 func MapFilterErr[T any, Y any](f func(T) (Y, error)) func(ls []T) []Y {
