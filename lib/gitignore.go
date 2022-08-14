@@ -20,7 +20,12 @@ func (ignores Matchers) Matches(path string) bool {
 	return false
 }
 
-func GetIgnoredPatterns(ignoreFiles []string) []Matcher {
+func GetAllIgnoredPatterns(config SetupConfig) []Matcher {
+	ignored := getIgnoredPatterns(config.gitignores)
+	return append(ignored, config.ignored...)
+}
+
+func getIgnoredPatterns(ignoreFiles []string) []Matcher {
 	return fp.PromiseAll(ignoreFiles, func(f string) Matcher {
 		ignore, err := ignore.CompileIgnoreFile(f)
 

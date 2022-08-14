@@ -14,6 +14,7 @@ var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "Symlink files into HOME",
 	Long:  `Symlink files from TARGET into HOME, according to config`,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		config := lib.BuildSetupConfig(

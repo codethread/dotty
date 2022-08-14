@@ -23,16 +23,14 @@ func DoTimes(count int, fn func()) {
 }
 
 // Map applies function `f` over a list of `ls`, returning a new array.
-func Map[T any, Y any](f func(T) Y) func(ls []T) []Y {
-	return func(ls []T) []Y {
-		newLs := make([]Y, len(ls))
+func Map[T any, Y any](ls []T, f func(T) Y) []Y {
+	newLs := make([]Y, len(ls))
 
-		for i, v := range ls {
-			newLs[i] = f(v)
-		}
-
-		return newLs
+	for i, v := range ls {
+		newLs[i] = f(v)
 	}
+
+	return newLs
 }
 
 func Filter[T any](ls []T, f func(T) bool) []T {

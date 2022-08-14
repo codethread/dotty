@@ -19,8 +19,7 @@ func Setup(config SetupConfig) {
 
 	Teardown(config)
 
-	ignored := GetIgnoredPatterns(config.gitignores)
-	allIgnored := append(ignored, config.ignored...)
+	allIgnored := GetAllIgnoredPatterns(config)
 
 	c := make(chan FileTree)
 	go getAllLinkableFiles(config.From, allIgnored, c)

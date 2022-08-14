@@ -13,6 +13,7 @@ var teardownCmd = &cobra.Command{
 	Use:   "teardown",
 	Short: "Remove all files originally created by dotty",
 	Long:  ``,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		config := lib.BuildSetupConfig(
 			lib.Flags{

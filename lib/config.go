@@ -38,14 +38,17 @@ type SetupConfig struct {
 	ignored     []Matcher
 	gitignores  []string
 	HistoryFile string
+	ImplicitConfig
 }
 
 func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
-	e := expand(implicitConfig.Home)
+	e := ExpandHome(implicitConfig.Home)
 	var matcher []Matcher
 
 	ignores := parseDottyIgnore(implicitConfig.ConfigLocation)
-	ignores = append(ignores, *flags.Ignores...)
+	if flags.Ignores != nil {
+		ignores = append(ignores, *flags.Ignores...)
+	}
 
 	for _, re := range ignores {
 		ignore, err := regexp.Compile(re)
@@ -57,12 +60,13 @@ func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 	}
 
 	return SetupConfig{
-		DryRun:      flags.DryRun,
-		From:        e("~/PersonalConfigs"),
-		To:          e("~"),
-		gitignores:  []string{e("~/PersonalConfigs/.gitignore_global"), e("~/PersonalConfigs/.gitignore")},
-		ignored:     matcher,
-		HistoryFile: e("~/.dotty"),
+		DryRun:         flags.DryRun,
+		From:           e("~/PersonalConfigs"),
+		To:             e("~"),
+		gitignores:     []string{e("~/PersonalConfigs/.gitignore_global"), e("~/PersonalConfigs/.gitignore")},
+		ignored:        matcher,
+		HistoryFile:    e("~/.dotty"),
+		ImplicitConfig: implicitConfig,
 	}
 }
 
@@ -81,7 +85,7 @@ func parseDottyIgnore(path string) (ignores []string) {
 	})
 }
 
-func expand(home string) func(string) string {
+func ExpandHome(home string) func(string) string {
 	return func(path string) string {
 		if path == "~" {
 			return home
