@@ -15,7 +15,9 @@ func TestFiles(config SetupConfig, files []string) {
 	ignores := GetAllIgnoredPatterns(config)
 
 	for _, dotfile := range dotfiles {
-		if isFileDotty(ignores, dotfile) {
+		if fileDoesntExist(dotfile, config.From) {
+			invalidFiles = append(invalidFiles, dotfile)
+		} else if isFileDotty(ignores, dotfile) {
 			validFiles = append(validFiles, dotfile)
 		} else {
 			invalidFiles = append(invalidFiles, dotfile)
@@ -32,6 +34,12 @@ func TestFiles(config SetupConfig, files []string) {
 		}
 		os.Exit(1)
 	}
+}
+
+func fileDoesntExist(file string, from string) bool {
+	_, err := os.Lstat(file)
+
+	return err == nil
 }
 
 func isFileDotty(ignores Matchers, file string) bool {
