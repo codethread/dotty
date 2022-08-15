@@ -3,6 +3,7 @@ package lib
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -37,9 +38,14 @@ func TestFiles(config SetupConfig, files []string) {
 }
 
 func fileDoesntExist(file string, from string) bool {
-	_, err := os.Lstat(file)
+	_, err := os.Lstat(filepath.Join(from, file))
 
-	return err == nil
+	if err != nil {
+		// file doesnt exist
+		return true
+	}
+
+	return false
 }
 
 func isFileDotty(ignores Matchers, file string) bool {
