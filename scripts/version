@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+old_version=$(git describe --tags --abbrev=0)
+version=$(git describe --tags --abbrev=0 | awk -F. '{OFS="."; $NF+=1; print $0}')
+
+cat cmd/version.go | sed -i "s/${old_version}/${version}/" cmd/version.go
+git add .
+git commit -m"${version}"
+
+git tag -a "$version" -m"${version}" HEAD
+git push --follow-tags

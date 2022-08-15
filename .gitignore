@@ -12,6 +12,8 @@
 !.github/
 !.github/**
 
+!scripts/**
+
 !*.go
 !go.sum
 !go.mod

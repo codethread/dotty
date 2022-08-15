@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+version=$(git describe --tags --abbrev=0)
+
+curl \
+  -X POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: token $GH_TOKEN" \
+  https://api.github.com/repos/codethread/dotty/releases \
+  -d "{\
+  \"tag_name\":\"${version}\", \
+  \"target_commitish\":\"main\",\
+  \"name\":\"${version}\",\
+  \"body\":\"${version}\",\
+  \"draft\":false,\
+  \"prerelease\":false,\
+  \"generate_release_notes\":false\
+}"
