@@ -61,7 +61,7 @@ If a folder is marked as ignored, dotty will not traverse it
 
 When dotty runs, it stores a list of created files in a temporary file, and then each time it runs, it removes these files. Empty folders will be deleted as it goes, meaning you are free to move and rename files/folders in your dotfolder as you please, and when dotty next runs, your HOME directory will be left in a clean state, before all the files are symlinked back in.
 
-Personally I like to integrate this flow with my editor, see the wiki for an example; this means dotty is run everytime I save or delete a file in my editor (and dotty is extremely fast, so there's no issue of slowdown)
+Personally I like to integrate this flow with my editor, [see the wiki for an example](https://github.com/codethread/dotty/wiki/Editor-integration); this means dotty is run everytime I save or delete a file in my editor (and dotty is extremely fast, so there's no issue of slowdown)
 
 ## Install
 
