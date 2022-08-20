@@ -2,7 +2,7 @@
 
 A dead simple dotfiles manager.
 
-Use at your own risk.
+Not yet ready for public use, as it assumes you keep your dotfiles at `~/PersonalConfigs`, I need to make this configurable. Use at your own risk.
 
 ## How it works
 
