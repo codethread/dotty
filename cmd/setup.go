@@ -16,16 +16,20 @@ var setupCmd = &cobra.Command{
 	Long:  `Symlink files from TARGET into HOME, according to config`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		dottyEnvs := lib.GetDottyEnv()
 
-		config := lib.BuildSetupConfig(
-			lib.Flags{
-				DryRun:  lib.DryRun,
-				Ignores: &lib.Ignores,
-			},
-			lib.GetImplicitConfig(),
-		)
+		for _, dottyEnv := range dottyEnvs.Targets {
+			config := lib.BuildSetupConfig(
+				lib.Flags{
+					DryRun:  lib.DryRun,
+					Ignores: &lib.Ignores,
+				},
+				lib.GetImplicitConfig(),
+				dottyEnv,
+			)
 
-		lib.Setup(config)
+			lib.Setup(config)
+		}
 	},
 }
 

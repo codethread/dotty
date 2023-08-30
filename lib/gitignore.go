@@ -1,8 +1,11 @@
 package lib
 
 import (
-	"github.com/codethread/dotty/lib/fp"
+	"os"
+
 	ignore "github.com/sabhiram/go-gitignore"
+
+	"github.com/codethread/dotty/lib/fp"
 )
 
 type Matcher interface {
@@ -26,7 +29,14 @@ func GetAllIgnoredPatterns(config SetupConfig) []Matcher {
 }
 
 func getIgnoredPatterns(ignoreFiles []string) []Matcher {
-	return fp.PromiseAll(ignoreFiles, func(f string) Matcher {
+	existingFiles := fp.Filter(ignoreFiles, func(file string) bool {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			return false
+		}
+		return true
+	})
+
+	return fp.PromiseAll(existingFiles, func(f string) Matcher {
 		ignore, err := ignore.CompileIgnoreFile(f)
 
 		if err != nil {

@@ -25,15 +25,19 @@ expanded to HOME respectively
 All other files will be appended to dotty config FROM location.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		dottyEnvs := lib.GetDottyEnv()
 
-		config := lib.BuildSetupConfig(
-			lib.Flags{
-				Ignores: &lib.Ignores,
-			},
-			lib.GetImplicitConfig(),
-		)
+		for _, dottyEnv := range dottyEnvs.Targets {
+			config := lib.BuildSetupConfig(
+				lib.Flags{
+					Ignores: &lib.Ignores,
+				},
+				lib.GetImplicitConfig(),
+				dottyEnv,
+			)
 
-		lib.TestFiles(config, args)
+			lib.TestFiles(config, args)
+		}
 	},
 }
 

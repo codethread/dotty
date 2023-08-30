@@ -15,14 +15,19 @@ var teardownCmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		config := lib.BuildSetupConfig(
-			lib.Flags{
-				DryRun: lib.DryRun,
-			},
-			lib.GetImplicitConfig(),
-		)
+		dottyEnvs := lib.GetDottyEnv()
 
-		lib.Teardown(config)
+		for _, dottyEnv := range dottyEnvs.Targets {
+			config := lib.BuildSetupConfig(
+				lib.Flags{
+					DryRun: lib.DryRun,
+				},
+				lib.GetImplicitConfig(),
+				dottyEnv,
+			)
+
+			lib.Teardown(config)
+		}
 	},
 }
 

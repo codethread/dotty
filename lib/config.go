@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -41,7 +42,7 @@ type SetupConfig struct {
 	ImplicitConfig
 }
 
-func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
+func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig, target DottyTarget) SetupConfig {
 	e := ExpandHome(implicitConfig.Home)
 	var matcher []Matcher
 
@@ -59,13 +60,24 @@ func BuildSetupConfig(flags Flags, implicitConfig ImplicitConfig) SetupConfig {
 		matcher = append(matcher, ignore)
 	}
 
+	safeName := strings.ReplaceAll(target.From, "/", "__")
+
+	historyFile := e(fmt.Sprintf("~/.config/dotty/%s", safeName))
+	dottyDir := e("~/.config/dotty")
+
+	if _, err := os.Stat(dottyDir); os.IsNotExist(err) {
+		os.MkdirAll(dottyDir, 0700)
+	}
+
 	return SetupConfig{
-		DryRun:         flags.DryRun,
-		From:           e("~/PersonalConfigs"),
-		To:             e("~"),
-		gitignores:     []string{e("~/PersonalConfigs/.gitignore_global"), e("~/PersonalConfigs/.gitignore")},
+		From: e(target.From),
+		To:   e(target.To),
+		gitignores: []string{
+			e(fmt.Sprintf("%s/.gitignore_global", target.From)),
+			e(fmt.Sprintf("%s/.gitignore", target.From)),
+		},
 		ignored:        matcher,
-		HistoryFile:    e("~/.dotty"),
+		HistoryFile:    historyFile,
 		ImplicitConfig: implicitConfig,
 	}
 }
@@ -96,4 +108,39 @@ func ExpandHome(home string) func(string) string {
 			return path
 		}
 	}
+}
+
+type DottyTargets struct {
+	Targets []DottyTarget
+}
+
+type DottyTarget struct {
+	From string
+	To   string
+}
+
+func GetDottyEnv() DottyTargets {
+	dotty := os.Getenv("DOTTY")
+	if dotty == "" {
+		fmt.Println("env var DOTTY not set")
+		os.Exit(1)
+	}
+
+	dirs := strings.Split(dotty, ":")
+	length := len(dirs)
+
+	if length%2 != 0 {
+		fmt.Printf("DOTTY env var contains uneven target pairs, value of length %d\n\n%s\n", length, dotty)
+		os.Exit(1)
+	}
+
+	var targets DottyTargets
+
+	for x := 0; x < length; {
+		t := DottyTarget{From: dirs[x], To: dirs[x+1]}
+		targets.Targets = append(targets.Targets, t)
+		x += 2
+	}
+
+	return targets
 }
