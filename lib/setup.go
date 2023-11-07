@@ -12,6 +12,7 @@ var naps int
 
 func Setup(config SetupConfig) {
 	dryRun := config.DryRun
+	force := config.Force
 
 	if dryRun {
 		fmt.Println("dry run, no files will be changed...")
@@ -28,7 +29,13 @@ func Setup(config SetupConfig) {
 	files = files.Filter(func(dir string, file string) bool {
 		target := fromFromPathToTarget(&config, dir, file)
 
-		if fileAlreadyExists(target) {
+		if force && fileAlreadyExists(target) {
+			err := os.Remove(target)
+			if err != nil {
+				fmt.Println("could not remove", target, err)
+			}
+			return true
+		} else if fileAlreadyExists(target) {
 			fmt.Fprintf(os.Stderr, "file %s already exists, you'll need to remove it manually\n", target)
 			return false
 		}

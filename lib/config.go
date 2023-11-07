@@ -34,6 +34,7 @@ func GetImplicitConfig() ImplicitConfig {
 
 type SetupConfig struct {
 	DryRun      bool
+	Force       bool
 	From        string
 	To          string
 	ignored     []Matcher

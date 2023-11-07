@@ -37,4 +37,5 @@ func init() {
 	rootCmd.AddCommand(setupCmd)
 	setupCmd.Flags().StringSliceVarP(&lib.Ignores, "ignore", "i", []string{}, "regex ignore patterns, e.g -i \"foo*\" -i \".*bar$\"")
 	setupCmd.Flags().BoolVarP(&lib.DryRun, "dry-run", "d", false, "show the files that would be affected, without running actually changing anything")
+	setupCmd.Flags().BoolVarP(&lib.Force, "force", "f", false, "replace existing files")
 }
